@@ -1,0 +1,104 @@
+---
+
+- debug: msg={{ project_path }}
+- debug: msg={{ project_path }}/{{ db_file_name }}
+
+- name: mkdir
+  file:
+    path: "{{ project_path }}"
+    state: directory
+
+- name: Download file from bucket
+  get_url:
+    url: "{{ s3_bucket }}/{{ db_file_name }}"
+    dest:  "{{ project_path }}/{{db_file_name}}"
+  register: everydb2
+
+- name: copy postgres config file
+  copy:
+    src: "{{ pgconf_name }}"
+    dest: "{{ postgres_conf_dir }}/{{ pgconf_name }}"
+    owner: postgres
+    group: postgres
+    mode: 0640
+
+- name: Create db
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: everydb2
+    state: present
+  when: everydb2.changed
+
+- name: Restore database
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: everydb2
+    state: restore
+    target: "{{ project_path }}/{{db_file_name}}"
+  when: everydb2.changed
+
+- name: Ensure we have access from the new user
+  become: yes
+  become_user: postgres
+  postgresql_privs:
+    db: everydb2
+    role: uma
+    objs: ALL_IN_SCHEMA
+    privs: SELECT,INSERT,UPDATE,DELETE
+  when: everydb2.changed
+
+- shell: echo "$DB_UMA_PROCESSED $UMA_STATISTICS_FROM_DATE ~ $UMA_STATISTICS_TO_DATE"
+  environment:
+    PGHOST: "{{ec2_tag_Peer}}"
+    PGPORT: "5432"
+    PGUSER: "uma"
+    PGPASSWORD: "password"
+    DB_UMA_PROCESSED: "postgresql://uma:password@{{ec2_tag_Peer}}:5432/uma_processed"
+    UMA_STATISTICS_FROM_DATE: "{{ ec2_tag_FromDate }}"
+    UMA_STATISTICS_TO_DATE: "{{ ec2_tag_ToDate }}"
+  register: return_from_shell
+
+- name: show shell out
+  debug:
+    msg: "{{ return_from_shell.stdout }}"
+
+- name: install python tools
+  become: yes
+  apt:
+    name:
+      - python3-pip
+      - python3-setuptools
+      - python3-psycopg2
+      - python3-tqdm
+      - python-setuptools
+    state: latest
+    update_cache: True
+
+- copy:
+    src: "{{ item }}"
+    dest: "{{ project_path }}/"
+    owner: ubuntu
+    group: ubuntu
+    mode: 0777
+  with_items:
+    - "collector.py"
+    - "LineAPI.py"
+  register: script
+
+- name: execute script
+  become: yes
+  shell: >
+    nohup bash -c "cd {{ project_path }}; 
+    python3 collector.py {{ ec2_tag_FromDate }} {{ ec2_tag_ToDate }} &&
+    python3 LineAPI.py \"{{ ec2_tag_FromDate }} ~ {{ ec2_tag_ToDate }} complete\" &&
+    sudo shutdown -h now ||
+    python3 LineAPI.py \"{{ ec2_tag_FromDate }} ~ {{ ec2_tag_ToDate }} failed\";"
+    >{{project_path}}/collector.log 2>&1 </dev/null &
+  environment:
+    DB_EVERYDB2: "postgresql://uma:password@localhost:5432/everydb2"
+    DB_UMA_PROCESSED: "postgresql://uma:password@{{ec2_tag_Peer}}:5432/uma_processed"
+    UMA_LINE_ACCESSTOKEN: "{{ lookup('env','UMA_LINE_ACCESSTOKEN') }}"
+  when: script.changed
+

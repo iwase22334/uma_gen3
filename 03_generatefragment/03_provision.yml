@@ -1,0 +1,34 @@
+############################################################
+#               All                                        #
+############################################################
+- hosts: all
+  gather_facts: no
+  remote_user: ubuntu
+  become: True
+
+  handlers:
+    - name: Restart postgresql
+      service: name=postgresql state=restarted enabled=yes
+
+  roles:
+    - postgres
+
+############################################################
+#               data proceessor                            #
+############################################################
+- hosts: tag_Role_fragment_generator
+  gather_facts: no
+  remote_user: ubuntu
+  become: True
+
+  handlers:
+    - name: Restart postgresql
+      service: name=postgresql state=restarted enabled=yes
+
+  vars:
+    script_name: generate_fragment.py
+    project_path: "{{ lookup('env','UMA_PROJECT_PATH') }}"
+    s3_bucket: https://{{ bucket_name }}.s3-us-west-2.amazonaws.com/{{ bucket_path }}
+
+  roles:
+    - fragmentgenerator

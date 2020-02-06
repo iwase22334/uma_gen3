@@ -1,0 +1,67 @@
+---
+- name: mkdir
+  file:
+    path: "{{ sqlfile_dst_dir }}"
+    state: directory
+
+- name: copy postgres config file
+  copy:
+    src: "{{pgconf_name}}"
+    dest: "{{ postgres_conf_dir }}/{{pgconf_name}}"
+    owner: postgres
+    group: postgres
+    mode: 0640
+
+- name: copy postgres config file 2
+  copy:
+    src: "{{ pghbaconf_name }}"
+    dest: "{{ postgres_conf_dir }}/{{ pghbaconf_name }}"
+    owner: postgres
+    group: postgres
+    mode: 0644
+
+- name: copy file
+  copy:
+    src: "show_progress.sh"
+    dest: "{{ sqlfile_dst_dir }}/show_progress.sh"
+    owner: ubuntu
+    group: ubuntu
+    mode: 0644
+
+- name: copy file
+  copy:
+    src: "{{sqlfile_name}}"
+    dest: "{{ sqlfile_dst_dir }}/{{sqlfile_name}}"
+    owner: ubuntu
+    group: ubuntu
+    mode: 0644
+  register: sqlfile
+
+- name: create db
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: uma_processed
+    state: present
+  when: sqlfile.changed
+
+- name: Run queries from SQL script
+  become: yes
+  become_user: postgres
+  postgresql_query:
+    db: uma_processed
+    path_to_script: "{{ sqlfile_dst_dir }}/{{sqlfile_name}}"
+  ignore_errors: yes
+  when: sqlfile.changed
+
+- name: Ensure we have access from the new user
+  become: yes
+  become_user: postgres
+  postgresql_privs:
+    db: uma_processed
+    role: uma
+    objs: ALL_IN_SCHEMA
+    privs: SELECT,INSERT,UPDATE,DELETE
+  notify: Restart postgresql
+  when: sqlfile.changed
+

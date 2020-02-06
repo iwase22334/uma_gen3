@@ -1,0 +1,73 @@
+---
+- name: install python tools
+  become: yes
+  apt:
+    name:
+      - python3-numpy
+      - python3-boto3
+      - python3-requests
+    state: latest 
+    update_cache: True 
+
+- name: mkdir
+  file:
+    path: "{{ project_path }}"
+    state: directory
+
+- name: Download file from bucket x_train
+  get_url:
+    url: "https://{{ bucket_name }}.s3-us-west-2.amazonaws.com/{{ bucket_path }}/x_train_{{'%02d'|format(item|int)}}.npy"
+    dest:  "{{ project_path }}/x_train_{{ '%02d'|format(item|int) }}.npy"
+  with_sequence: start=1 end={{ ec2_tag_TrainCount }}
+
+- name: Download file from bucket y_train
+  get_url:
+    url: "https://{{ bucket_name }}.s3-us-west-2.amazonaws.com/{{ bucket_path }}/y_train_{{'%02d'|format(item|int)}}.npy"
+    dest:  "{{ project_path }}/y_train_{{ '%02d'|format(item|int) }}.npy"
+  with_sequence: start=1 end={{ ec2_tag_TrainCount }}
+
+- name: Download file from bucket x_eval
+  get_url:
+    url: "https://{{ bucket_name }}.s3-us-west-2.amazonaws.com/{{ bucket_path }}/x_eval_{{'%02d'|format(item|int)}}.npy"
+    dest:  "{{ project_path }}/x_eval_{{ '%02d'|format(item|int) }}.npy"
+  with_sequence: start=1 end={{ ec2_tag_EvalCount }}
+
+- name: Download file from bucket y_eval
+  get_url:
+    url: "https://{{ bucket_name }}.s3-us-west-2.amazonaws.com/{{ bucket_path }}/y_eval_{{'%02d'|format(item|int)}}.npy"
+    dest:  "{{ project_path }}/y_eval_{{ '%02d'|format(item|int) }}.npy"
+  with_sequence: start=1 end={{ ec2_tag_EvalCount }}
+
+- copy:
+    src: "{{ item }}"
+    dest: "{{ project_path }}/"
+    owner: ubuntu
+    group: ubuntu
+    mode: 0777
+  with_items:
+    - "gather_fragment.py"
+    - "LineAPI.py"
+    - "s3_upload.py"
+  register: fragment_gatherer
+
+- name: execute script
+  shell: > 
+    nohup sh -c "cd {{ project_path }};
+    python3 gather_fragment.py train {{ ec2_tag_TrainCount }};
+    python3 gather_fragment.py eval {{ ec2_tag_EvalCount }};
+    python3 s3_upload.py x_train.npy {{ bucket_path }}/x_train.npy &&
+    python3 s3_upload.py y_train.npy {{ bucket_path }}/y_train.npy &&
+    python3 s3_upload.py x_eval.npy {{ bucket_path }}/x_eval.npy &&
+    python3 s3_upload.py y_eval.npy {{ bucket_path }}/y_eval.npy &&
+    python3 LineAPI.py \"gather complete\" &&
+    shutdown -h now;"
+    >{{ project_path }}/gatherfragment.log 2>&1 &
+  environment:
+    DB_EVERYDB2: "postgresql://uma:password@localhost:5432/everydb2"
+    DB_UMA_PROCESSED: "postgresql://uma:password@localhost:5432/uma_processed"
+    UMA_TRAINER_STATISTICS_BUCKET: "{{ bucket_name }}"
+    UMA_AWS_REGION: "{{ lookup('env','UMA_AWS_REGION') }}"
+    UMA_AWS_ACCESS_KEY_ID:  "{{ lookup('env','UMA_AWS_ACCESS_KEY_ID') }}"
+    UMA_AWS_SECRET_ACCESS_KEY:  "{{ lookup('env','UMA_AWS_SECRET_ACCESS_KEY') }}"
+    UMA_LINE_ACCESSTOKEN: "{{ lookup('env','UMA_LINE_ACCESSTOKEN') }}"
+  when: fragment_gatherer.changed

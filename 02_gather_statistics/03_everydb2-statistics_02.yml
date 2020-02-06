@@ -1,0 +1,58 @@
+############################################################
+#               All                                        #
+############################################################
+- hosts: all
+  remote_user: ubuntu
+  become: True
+
+  handlers:
+    - name: Restart postgresql
+      service: name=postgresql state=restarted enabled=yes
+
+  roles:
+    - postgres
+
+############################################################
+#               target db                                  #
+############################################################
+- hosts: tag_Role_processeddb
+  remote_user: ubuntu
+  become: True
+
+  handlers:
+    - name: Restart postgresql
+      service: name=postgresql state=restarted enabled=yes
+
+  vars:
+    project_path: "{{ lookup('env','UMA_PROJECT_PATH') }}"
+    sqlfile_dst_dir: "{{ lookup('env','UMA_PROJECT_PATH') }}"
+    sqlfile_name: create_table.sql
+    postgres_conf_dir: /etc/postgresql/11/main
+    pgconf_name: postgresql.conf
+    pghbaconf_name: pg_hba.conf
+
+  roles:
+    - processeddb
+
+############################################################
+#               data proceessor                            #
+############################################################
+#- hosts: [ "tag_Name_dataprocessor_11", "tag_Name_dataprocessor_04" ]
+- hosts: tag_Role_dataprocessor
+  remote_user: ubuntu
+  become: True
+
+  handlers:
+    - name: Restart postgresql
+      service: name=postgresql state=restarted enabled=yes
+
+  vars:
+    project_path: "{{ lookup('env','UMA_PROJECT_PATH') }}"
+    script_name: collector.py
+    db_file_name: everydb2.sql
+    s3_bucket: https://{{ bucket_name }}.s3-us-west-2.amazonaws.com/{{ bucket_path }}
+    postgres_conf_dir: /etc/postgresql/11/main
+    pgconf_name: postgresql.conf
+
+  roles:
+    - dataprocessor

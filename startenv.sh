@@ -1,0 +1,26 @@
+export PGUSER="postgres"
+export PGPASSWORD="password"
+export PGHOST="192.168.11.2"
+export PGPORT="5433"
+export PGDATABASE_SRC="everydb2"
+
+export UMA_PROJECT_NAME=trainer_gen3
+export UMA_PROJECT_PATH=/var/tmp/$UMA_PROJECT_NAME
+mkdir -p $UMA_PROJECT_PATH
+
+export DATABASE_URL_SRC="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE_SRC}"
+export DB_EVERYDB2="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE_SRC}"
+export DB_UMA_PROCESSED="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/uma_processed"
+
+export DUMMY_RACE_HOST="localhost"
+export DUMMY_RACE_PORT="8080"
+export DUMMY_RACE_URL="http://$DUMMY_RACE_HOST:$DUMMY_RACE_PORT"
+
+export DUMMY_ODDS_HOST="localhost"
+export DUMMY_ODDS_PORT="8081"
+export DUMMY_ODDS_URL="http://$DUMMY_ODDS_HOST:$DUMMY_ODDS_PORT"
+
+export WIN_PROB_ESTIMATOR_HOST="localhost"
+export WIN_PROB_ESTIMATOR_PORT="62180"
+export WIN_PROB_ESTIMATOR_URL="http://$WIN_PROB_ESTIMATOR_HOST:$WIN_PROB_ESTIMATOR_PORT"
+

@@ -1,0 +1,9 @@
+- hosts: tag_Role_processeddb
+  remote_user: ubuntu
+  become: True
+
+  vars:
+    project_path: "{{ lookup('env','UMA_PROJECT_PATH') }}"
+
+  roles:
+    - harvest

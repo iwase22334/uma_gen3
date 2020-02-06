@@ -1,0 +1,45 @@
+---
+
+- name:  Change file ownership, group and permissions
+  file:
+    path: "{{ project_path }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: '0777'
+
+- name: Dump an existing database to a file
+  become: yes
+  become_user: postgres
+  postgresql_db:
+    name: uma_processed
+    state: dump
+    target: "{{ project_path }}/uma_processed.sql"
+
+- name: copy script file
+  copy:
+    src: "s3_upload.py"
+    dest: "{{ project_path }}/s3_upload.py"
+    owner: postgres
+    group: postgres
+    mode: 0640
+
+- name: install postgres tools
+  become: true
+  apt:
+    name:
+      - 'python3-boto3'
+    state: present
+    update_cache: yes
+
+- name: upload script
+  become: yes
+  shell: >
+    bash -c "cd {{ project_path }}; 
+    python3 s3_upload.py uma_processed.sql {{ bucket_path }}/uma_processed.sql"
+  environment:
+    UMA_TRAINER_STATISTICS_BUCKET: "{{ bucket_name }}"
+    UMA_AWS_REGION: "{{ lookup('env','UMA_AWS_REGION') }}"
+    UMA_AWS_ACCESS_KEY_ID:  "{{ lookup('env','UMA_AWS_ACCESS_KEY_ID') }}"
+    UMA_AWS_SECRET_ACCESS_KEY:  "{{ lookup('env','UMA_AWS_SECRET_ACCESS_KEY') }}"
+    UMA_LINE_ACCESSTOKEN: "{{ lookup('env','UMA_LINE_ACCESSTOKEN') }}"
+

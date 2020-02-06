@@ -1,0 +1,9 @@
+- hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Destroy bucket
+      terraform:
+        project_path: 'terraform/'
+        state: absent

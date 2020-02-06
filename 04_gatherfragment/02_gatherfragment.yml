@@ -1,0 +1,14 @@
+############################################################
+#               data proceessor                            #
+############################################################
+- hosts: tag_Role_fragment_gatherer
+  gather_facts: no
+  remote_user: ubuntu
+  become: True
+
+  vars:
+    script_name: gather_fragment.py
+    project_path: "{{ lookup('env','UMA_PROJECT_PATH') }}"
+
+  roles:
+    - fragmentgatherer

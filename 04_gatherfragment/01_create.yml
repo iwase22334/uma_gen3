@@ -1,0 +1,11 @@
+- hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Create resources
+      terraform:
+        project_path: 'terraform/'
+        state: present
+      register: terraform
+

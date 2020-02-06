@@ -1,0 +1,66 @@
+---
+
+- name: mkdir
+  file:
+    path: "{{ project_path }}"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: 0777
+
+- name: Download file from bucket everydb2
+  get_url:
+    url: "https://{{ bucket_name }}.s3-us-west-2.amazonaws.com/{{ bucket_path }}/{{ item }}"
+    dest:  "{{ project_path }}/{{ item }}"
+  with_items:
+    - "{{ train_x_data }}"
+    - "{{ train_y_data }}"
+    - "{{ eval_x_data }}"
+    - "{{ eval_y_data }}"
+
+- copy:
+    src: "{{ item }}"
+    dest: "{{ project_path }}/"
+    owner: ubuntu
+    group: ubuntu
+    mode: 0777
+  with_items:
+    - "trainer.py"
+    - "evaluate.py"
+    - "format_data.py"
+    - "LineAPI.py"
+    - "s3_upload.py"
+  register: trainer
+
+- name: execute script
+  become_user: ubuntu
+  shell: > 
+    nohup bash -c "cd {{ project_path }};
+    source /home/ubuntu/anaconda3/etc/profile.d/conda.sh;
+    conda activate tensorflow_p36;
+    python3 trainer.py && 
+    { 
+        sort -t : -k 2 -o result.txt log_trainer.txt;
+        python3 s3_upload.py result.txt {{ bucket_path }}/{{ec2_tag_Name}}/result.txt ;
+        python3 s3_upload.py console_out.txt {{ bucket_path }}/{{ec2_tag_Name}}/console_out.txt ;
+        python3 s3_upload.py trainer.py {{ bucket_path }}/{{ec2_tag_Name}}/trainer.py ;
+        python3 LineAPI.py \"trainer complete\" &&
+        sudo shutdown -h now; 
+    } ||
+    { 
+        sort -t : -k 2 -o result.txt log_trainer.txt;
+        python3 s3_upload.py result.txt {{ bucket_path }}/{{ec2_tag_Name}}/result.txt ;
+        python3 s3_upload.py console_out.txt {{ bucket_path }}/{{ec2_tag_Name}}/console_out.txt ;
+        python3 LineAPI.py \"trainer failed\"; 
+        sudo shutdown -h now; 
+    }"
+    >{{ project_path }}/console_out.txt 2>&1 &
+  environment:
+    UMA_PROJECT_PATH: "{{ lookup('env','UMA_PROJECT_PATH') }}"
+    UMA_TRAINER_STATISTICS_BUCKET: "{{ bucket_name }}"
+    UMA_AWS_REGION: "{{ lookup('env','UMA_AWS_REGION') }}"
+    UMA_AWS_ACCESS_KEY_ID:  "{{ lookup('env','UMA_AWS_ACCESS_KEY_ID') }}"
+    UMA_AWS_SECRET_ACCESS_KEY:  "{{ lookup('env','UMA_AWS_SECRET_ACCESS_KEY') }}"
+    UMA_LINE_ACCESSTOKEN: "{{ lookup('env','UMA_LINE_ACCESSTOKEN') }}"
+  when: trainer.changed
+

@@ -1,0 +1,11 @@
+__pycache__
+*.png
+*.h5
+*.hist
+*.npy
+
+*.tfstate
+*.backup
+*.retry
+
+.terraform

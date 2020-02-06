@@ -1,0 +1,16 @@
+- hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Create resources
+      terraform:
+        project_path: 'terraform/'
+        state: present
+      register: terraform
+
+    - name: Upload Object
+      shell: "aws s3 cp {{ lookup('env','UMA_PROJECT_PATH') }}/everydb2.sql s3://iwase22334-umastore/{{ bucket_path }}/everydb2.sql --acl public-read"
+      register: result
+      changed_when: False
+
