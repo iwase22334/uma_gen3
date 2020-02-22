@@ -8,32 +8,10 @@ data "aws_subnet" "selected" {
     }
 }
 
-resource "aws_security_group" "allow_psql" {
-    vpc_id      = "${data.aws_subnet.selected.vpc_id}"
-    name        = "allow_psql"
-    description = "Used in the terraform"
-
-    # SSH access from anywhere
-    ingress {
-        from_port   = 22
-        to_port     = 22
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-
-    # psql access from anywhere
-    ingress {
-        from_port = 5432
-        to_port = 5432
-        protocol = "tcp"
-        cidr_blocks = ["${data.aws_subnet.selected.cidr_block}"]
-    }
-
-    egress {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
+data "aws_security_group" "selected" {
+    filter {
+        name   = "group-name"
+        values = ["allow_psql"]
     }
 }
 
@@ -50,9 +28,9 @@ resource "aws_instance" "fragmentgenerator_train" {
   }
 
   availability_zone      = "${var.availability_zone}"
-  vpc_security_group_ids = ["${aws_security_group.allow_psql.id}"]
+  vpc_security_group_ids = ["${data.aws_security_group.selected.id}"]
   subnet_id         = "${data.aws_subnet.selected.id}"
-  private_ip             = "${format("10.10.3.1%02d", count.index + 1)}"
+  private_ip        = "${format("10.10.3.1%02d", count.index + 1)}"
   key_name          = "${var.key_name}"
 
   associate_public_ip_address = "true"
@@ -76,7 +54,7 @@ resource "aws_instance" "fragmentgenerator_eval" {
   }
 
   availability_zone      = "${var.availability_zone}"
-  vpc_security_group_ids = ["${aws_security_group.allow_psql.id}"]
+  vpc_security_group_ids = ["${data.aws_security_group.selected.id}"]
   subnet_id         = "${data.aws_subnet.selected.id}"
   private_ip        = "${format("10.10.3.2%02d", count.index + 1)}"
   key_name          = "${var.key_name}"

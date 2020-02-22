@@ -18,7 +18,7 @@ variable "public_key_path" {
 }
 
 variable "app_name" {
-    default = "uma_trainer_gen02"
+    default = "uma_trainer_gen03"
 }
 
 variable "region" {

@@ -29,6 +29,6 @@ variable "trainer_ami" {
     default ="ami-010a96c958f9ee5cf" 
 }
 variable "trainer_instance" {
-    default = "m5.2xlarge"
+    default = "p2.xlarge"
 }
 

@@ -18,7 +18,7 @@ data "aws_security_group" "selected_sg" {
 #####################################
 ## instance 
 #####################################
-resource "aws_instance" "trainer_gen2_shallow03" {
+resource "aws_instance" "trainer_gen3" {
   ami           = "${var.trainer_ami}"
   instance_type = "${var.trainer_instance}"
 
@@ -30,7 +30,7 @@ resource "aws_instance" "trainer_gen2_shallow03" {
   associate_public_ip_address = "true"
 
   tags = {
-    Name     = "trainer_gen2_shallow03"
+    Name     = "trainer_gen3"
     Role     = "trainer"
   }
 }

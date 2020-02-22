@@ -16,8 +16,8 @@ def provision(fromymd, toymd, name):
 
     print('x_train', len(x_train) )
     print('x_train[]', [len(x_train[i]) for i in range(len(x_train))] )
-    print('x_train[0][0]', len(x_train[0][0]))
-    print('x_train[1][0]', len(x_train[1][0]))
+    for n in range(len(x_train[0])):
+        print('len []', [len(x_train[i][n]) for i in range(len(x_train))] )
 
 if __name__ == "__main__":
 

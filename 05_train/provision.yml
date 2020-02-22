@@ -1,7 +1,7 @@
 ############################################################
 #               data proceessor                            #
 ############################################################
-- hosts: tag_Name_trainer_gen2_shallow03
+- hosts: tag_Name_trainer_gen3
   remote_user: ubuntu
   become: True
 

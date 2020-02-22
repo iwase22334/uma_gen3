@@ -95,7 +95,7 @@
   with_items:
     - "generate_fragment.py"
     - "LineAPI.py"
-    - "UmaDatasetGen2.py"
+    - "UmaDatasetGen3.py"
     - "s3_upload.py"
   register: fragment_generator
 
@@ -105,12 +105,16 @@
     nohup sh -c "python3 generate_fragment.py {{ ec2_tag_FromDate }} {{ ec2_tag_ToDate }} {{ ec2_tag_OutName }}; 
     python3 s3_upload.py x_{{ ec2_tag_OutName }}.npy {{ bucket_path }}/x_{{ ec2_tag_OutName }}.npy && 
     python3 s3_upload.py y_{{ ec2_tag_OutName }}.npy {{ bucket_path }}/y_{{ ec2_tag_OutName }}.npy && 
-    { [ $(({{ ec2_tag_FromDate }} % 10000)) -eq 100 ] &&
-    python3 LineAPI.py \"{{ ec2_tag_OutName }} {{ ec2_tag_FromDate }} ~ {{ ec2_tag_ToDate }} success \" ; 
-    shutdown -h now ; } ||
-    { python3 s3_upload.py generatefragment.log {{ project_path }}/generatefragment_{{ ec2_tag_OutName }}.log ; 
-    python3 LineAPI.py \"{{ ec2_tag_OutName }} {{ ec2_tag_FromDate }} ~ {{ ec2_tag_ToDate }} failed \" ;
-    shutdown -h now ; }"
+    { 
+        [ $(({{ ec2_tag_FromDate }} % 10000)) -eq 100 ] &&
+        python3 LineAPI.py \"{{ ec2_tag_OutName }} {{ ec2_tag_FromDate }} ~ {{ ec2_tag_ToDate }} success \" ; 
+        shutdown -h now ; 
+    } ||
+    { 
+        python3 s3_upload.py generatefragment.log {{ bucket_path }}/generatefragment_{{ ec2_tag_OutName }}.log ; 
+        python3 LineAPI.py \"{{ ec2_tag_OutName }} {{ ec2_tag_FromDate }} ~ {{ ec2_tag_ToDate }} failed \" ;
+        shutdown -h now ; 
+    }"
     >generatefragment.log 2>&1 &
   environment:
     DB_EVERYDB2: "postgresql://uma:password@localhost:5432/everydb2"

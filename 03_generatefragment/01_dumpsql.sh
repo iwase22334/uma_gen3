@@ -10,7 +10,6 @@ everydb2 > ${targetdir}/everydb2.sql
 
 pg_dump -U postgres -h localhost -p 5433 \
 -t uma_statistics_02 \
--t uma_rating_10 \
--t uma_rating_11 \
--t uma_rating_12 \
+-t uma_rating_20 \
+-t uma_rating_21 \
 uma_processed > ${targetdir}/uma_processed.sql

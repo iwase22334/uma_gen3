@@ -13,10 +13,8 @@ statistics_table = 'uma_statistics_02' # 293 cols
 
 def onehot(size, hot_index):
     res = [0] * size
-
     if hot_index < 0:
         return res
-
     res[hot_index] = 1
     return res
 
@@ -42,41 +40,36 @@ class DateFilter:
     def greater_than_or_equal(cls, yearmonthday):
         return " (year>'%s' or (year='%s' AND monthday>='%s'))" % (yearmonthday[:4], yearmonthday[:4], yearmonthday[4:])
 
-class SelectPhrase:
-    @classmethod
-    def generate(self, reference):
-        query = 'SELECT ' + reference.cols.strip() + ' FROM ' + reference.table.strip()
+def select_query_generate(reference):
+    query = 'SELECT ' + reference.cols.strip() + ' FROM ' + reference.table.strip()
 
-        if reference.conditions.strip():
-            query += ' WHERE ' + reference.conditions.strip()
+    if reference.conditions.strip():
+        query += ' WHERE ' + reference.conditions.strip()
 
-        if reference.order.strip():
-            query += ' ORDER BY ' + reference.order.strip()
+    if reference.order.strip():
+        query += ' ORDER BY ' + reference.order.strip()
 
-        if reference.limit.strip():
-            query += ' LIMIT ' + reference.limit.strip()
+    if reference.limit.strip():
+        query += ' LIMIT ' + reference.limit.strip()
 
-        return query
+    return query
 
 class IDListReference:
     def __init__(self, fromymd, toymd):
         self.table      = 'n_race'
         self.cols       = 'year, monthday, jyocd, kaiji, nichiji, racenum'
-        #self.conditions = "datakubun='7' AND concat(year, monthday) >= '%s' AND concat(year, monthday) <= '%s'" % (fromymd, toymd)
         self.conditions = "datakubun='7' AND "\
                             + DateFilter.greater_than_or_equal(fromymd) \
                             + " AND"\
                             + DateFilter.less_than_or_equal(toymd)
         self.order      = 'year ASC, monthday ASC, jyocd ASC, nichiji ASC, racenum ASC'
         self.limit      = ''
-        #self.limit      = '200'
 
 class IDListKettonumReference:
     __cols = 'year, monthday, jyocd, kaiji, nichiji, racenum, ijyocd'
     def __init__(self, id, kettonum, limit):
         self.table      = 'n_uma_race'
         self.cols       = IDListKettonumReference.__cols
-        #self.conditions = "kettonum='%s' AND datakubun='7' AND concat(year, monthday) < '%s%s'" % (kettonum, id[0], id[1])
         self.conditions = "kettonum='%s' AND datakubun='7' AND " % (kettonum,) + DateFilter.less_than(id[0] + id[1])
         self.order      = 'year DESC, monthday DESC, jyocd DESC, nichiji DESC, racenum DESC'
         self.limit      = '%d' % limit
@@ -127,13 +120,144 @@ class PastHorseInfoReference:
         return self.__cols.strip().split(', ').index(colname)
 
 class StatisticsReference:
+    __cols = 'ruikeihonshiba, '\
+'ruikeifukashiba, '\
+'ruikeihondirt, '\
+'ruikeifukadirt, '\
+'ruikeichakukaisu, '\
+'chakukaisu1, '\
+'chakukaisu2, '\
+'chakukaisu3, '\
+'chakukaisu4, '\
+'chakukaisu5, '\
+'chakukaisu6l, '\
+'u12shibachakukaisu1, '\
+'u12shibachakukaisu2, '\
+'u12shibachakukaisu3, '\
+'u12shibachakukaisu4, '\
+'u12shibachakukaisu5, '\
+'u12shibachakukaisu6l, '\
+'u14shibachakukaisu1, '\
+'u14shibachakukaisu2, '\
+'u14shibachakukaisu3, '\
+'u14shibachakukaisu4, '\
+'u14shibachakukaisu5, '\
+'u14shibachakukaisu6l, '\
+'u16shibachakukaisu1, '\
+'u16shibachakukaisu2, '\
+'u16shibachakukaisu3, '\
+'u16shibachakukaisu4, '\
+'u16shibachakukaisu5, '\
+'u16shibachakukaisu6l, '\
+'u18shibachakukaisu1, '\
+'u18shibachakukaisu2, '\
+'u18shibachakukaisu3, '\
+'u18shibachakukaisu4, '\
+'u18shibachakukaisu5, '\
+'u18shibachakukaisu6l, '\
+'u20shibachakukaisu1, '\
+'u20shibachakukaisu2, '\
+'u20shibachakukaisu3, '\
+'u20shibachakukaisu4, '\
+'u20shibachakukaisu5, '\
+'u20shibachakukaisu6l, '\
+'u22shibachakukaisu1, '\
+'u22shibachakukaisu2, '\
+'u22shibachakukaisu3, '\
+'u22shibachakukaisu4, '\
+'u22shibachakukaisu5, '\
+'u22shibachakukaisu6l, '\
+'u24shibachakukaisu1, '\
+'u24shibachakukaisu2, '\
+'u24shibachakukaisu3, '\
+'u24shibachakukaisu4, '\
+'u24shibachakukaisu5, '\
+'u24shibachakukaisu6l, '\
+'u28shibachakukaisu1, '\
+'u28shibachakukaisu2, '\
+'u28shibachakukaisu3, '\
+'u28shibachakukaisu4, '\
+'u28shibachakukaisu5, '\
+'u28shibachakukaisu6l, '\
+'o28shibachakukaisu1, '\
+'o28shibachakukaisu2, '\
+'o28shibachakukaisu3, '\
+'o28shibachakukaisu4, '\
+'o28shibachakukaisu5, '\
+'o28shibachakukaisu6l, '\
+'u12dirtchakukaisu1, '\
+'u12dirtchakukaisu2, '\
+'u12dirtchakukaisu3, '\
+'u12dirtchakukaisu4, '\
+'u12dirtchakukaisu5, '\
+'u12dirtchakukaisu6l, '\
+'u14dirtchakukaisu1, '\
+'u14dirtchakukaisu2, '\
+'u14dirtchakukaisu3, '\
+'u14dirtchakukaisu4, '\
+'u14dirtchakukaisu5, '\
+'u14dirtchakukaisu6l, '\
+'u16dirtchakukaisu1, '\
+'u16dirtchakukaisu2, '\
+'u16dirtchakukaisu3, '\
+'u16dirtchakukaisu4, '\
+'u16dirtchakukaisu5, '\
+'u16dirtchakukaisu6l, '\
+'u18dirtchakukaisu1, '\
+'u18dirtchakukaisu2, '\
+'u18dirtchakukaisu3, '\
+'u18dirtchakukaisu4, '\
+'u18dirtchakukaisu5, '\
+'u18dirtchakukaisu6l, '\
+'u20dirtchakukaisu1, '\
+'u20dirtchakukaisu2, '\
+'u20dirtchakukaisu3, '\
+'u20dirtchakukaisu4, '\
+'u20dirtchakukaisu5, '\
+'u20dirtchakukaisu6l, '\
+'u22dirtchakukaisu1, '\
+'u22dirtchakukaisu2, '\
+'u22dirtchakukaisu3, '\
+'u22dirtchakukaisu4, '\
+'u22dirtchakukaisu5, '\
+'u22dirtchakukaisu6l, '\
+'u24dirtchakukaisu1, '\
+'u24dirtchakukaisu2, '\
+'u24dirtchakukaisu3, '\
+'u24dirtchakukaisu4, '\
+'u24dirtchakukaisu5, '\
+'u24dirtchakukaisu6l, '\
+'u28dirtchakukaisu1, '\
+'u28dirtchakukaisu2, '\
+'u28dirtchakukaisu3, '\
+'u28dirtchakukaisu4, '\
+'u28dirtchakukaisu5, '\
+'u28dirtchakukaisu6l, '\
+'o28dirtchakukaisu1, '\
+'o28dirtchakukaisu2, '\
+'o28dirtchakukaisu3, '\
+'o28dirtchakukaisu4, '\
+'o28dirtchakukaisu5, '\
+'o28dirtchakukaisu6l, '\
+'kyakusitukubunkaisu1, '\
+'kyakusitukubunkaisu2, '\
+'kyakusitukubunkaisu3, '\
+'kyakusitukubunkaisu4 '
+
     def __init__(self, id, kettonum):
         self.table      = statistics_table
-        self.cols       = '*'
-        #self.conditions = "kettonum='%s' AND concat(year, monthday) < '%s%s'" % (kettonum, id[0], id[1])
+        self.cols       = StatisticsReference.__cols
         self.conditions = "kettonum='%s' AND " % (kettonum,) + DateFilter.less_than(id[0] + id[1])
         self.order      = 'year DESC, monthday DESC'
         self.limit      = '1'
+
+    @classmethod
+    def size(self):
+        return len(self.__cols.strip().split(', '))
+
+    @classmethod
+    def index(self, colname):
+        return self.__cols.strip().split(', ').index(colname)
 
 class StaticHorseInfoReference:
     __cols = 'birthdate, hinsyucd'
@@ -218,7 +342,7 @@ class RaceInfoLoader:
     @classmethod
     def load_data(self, id, everydb):
         with everydb.cursor('evcur') as cur:
-            query = SelectPhrase.generate(RaceInfoReference(id))
+            query = select_query_generate(RaceInfoReference(id))
             cur.execute(query)
             rows = cur.fetchall()
 
@@ -318,7 +442,7 @@ class RaceInfoLoader:
     def load_data_with_harontime(self, id, everydb):
         data = RaceInfoLoader.load_data(id, everydb)
         with everydb.cursor('evcur') as cur:
-            query = SelectPhrase.generate(HarontimeReference(id))
+            query = select_query_generate(HarontimeReference(id))
             cur.execute(query)
             rows = cur.fetchall()
 
@@ -340,7 +464,7 @@ def load_past_id_from_kettonum(id, kettonum, limit, everydb):
 
     with everydb.cursor('everydb_cur') as everydb_cur:
         # Get race specific uma info from n_race_uma
-        query = SelectPhrase.generate(IDListKettonumReference(id, kettonum, limit))
+        query = select_query_generate(IDListKettonumReference(id, kettonum, limit))
         everydb_cur.execute(query)
 
         while True:
@@ -359,7 +483,7 @@ def load_kettonum_list(id, everydb):
 
     with everydb.cursor('everydb_cur') as everydb_cur:
         # Get race specific uma info from n_race_uma
-        query = SelectPhrase.generate(kettonumReference(id))
+        query = select_query_generate(kettonumReference(id))
         everydb_cur.execute(query)
 
         while True:
@@ -374,28 +498,67 @@ def load_kettonum_list(id, everydb):
     return kettonum_list
 
 class StatisticsLoader:
-    data_size = 293
-
     @classmethod
     def load_data(self, id, kettonum, uma_processed):
-        query = SelectPhrase.generate(StatisticsReference(id, kettonum))
+        query = select_query_generate(StatisticsReference(id, kettonum))
         with uma_processed.cursor('processed') as processed_cur:
             processed_cur.execute(query)
             row = processed_cur.fetchone()
 
         if row == None:
-            return [0] * self.data_size
+            row = [0] * StatisticsReference.size()
 
-        data = [ int(item) for item in row[7:] ]
+        # 0.1k yen / 10000000.0 = billion
+        ruikeishiba = int(row[StatisticsReference.index('ruikeihonshiba')]) / 10000000.0 \
+                     + int(row[StatisticsReference.index('ruikeifukashiba')]) / 10000000.0
+        ruikeidirt = int(row[StatisticsReference.index('ruikeihondirt')]) / 10000000.0 \
+                     + int(row[StatisticsReference.index('ruikeifukadirt')]) / 10000000.0
 
-        # normalize syokin
-        data[0] = data[0] / 10000000.0 # 0.1k yen / 10000000.0 = billion
-        data[1] = data[1] / 10000000.0
-        data[2] = data[2] / 10000000.0
-        data[3] = data[3] / 10000000.0
-        data[4] = data[4] / 10000000.0
-        data[5] = data[5] / 10000000.0
-        return data
+        ruikeichakukaisu = int(row[StatisticsReference.index('ruikeichakukaisu')])
+
+        def ratio(row, tag, num):
+            head = StatisticsReference.index(tag)
+            part = list(map(lambda c: int(c), row[head:head + num]))
+
+            csum = sum(part)
+
+            if csum != 0:
+                rto = list(map(lambda c, r=csum: c / r, part))
+            else:
+                rto = [1.0 / num] * num
+
+            return csum, rto
+
+        chaku, chaku_r = ratio(row, 'chakukaisu1', 6)
+        u12sh, u12sh_r = ratio(row, 'u12shibachakukaisu1', 6)
+        u14sh, u14sh_r = ratio(row, 'u14shibachakukaisu1', 6)
+        u16sh, u16sh_r = ratio(row, 'u16shibachakukaisu1', 6)
+        u18sh, u18sh_r = ratio(row, 'u18shibachakukaisu1', 6)
+        u20sh, u20sh_r = ratio(row, 'u20shibachakukaisu1', 6)
+        u22sh, u22sh_r = ratio(row, 'u22shibachakukaisu1', 6)
+        u24sh, u24sh_r = ratio(row, 'u24shibachakukaisu1', 6)
+        u28sh, u28sh_r = ratio(row, 'u28shibachakukaisu1', 6)
+        o28sh, o28sh_r = ratio(row, 'o28shibachakukaisu1', 6)
+        u12di, u12di_r = ratio(row, 'u12dirtchakukaisu1', 6)
+        u14di, u14di_r = ratio(row, 'u14dirtchakukaisu1', 6)
+        u16di, u16di_r = ratio(row, 'u16dirtchakukaisu1', 6)
+        u18di, u18di_r = ratio(row, 'u18dirtchakukaisu1', 6)
+        u20di, u20di_r = ratio(row, 'u20dirtchakukaisu1', 6)
+        u22di, u22di_r = ratio(row, 'u22dirtchakukaisu1', 6)
+        u24di, u24di_r = ratio(row, 'u24dirtchakukaisu1', 6)
+        u28di, u28di_r = ratio(row, 'u28dirtchakukaisu1', 6)
+        o28di, o28di_r = ratio(row, 'o28dirtchakukaisu1', 6)
+        kyaku, kyaku_r = ratio(row, 'kyakusitukubunkaisu1', 4)
+
+        if kyaku == 0:
+            kyaku_r = [0.333, 0.333, 0.333, 0.333]
+
+        return [ruikeishiba / 100.0, ruikeidirt/ 100.0, ruikeichakukaisu/ 100.0, chaku/ 100.0, kyaku/ 100.0,
+            u12sh/ 100.0, u14sh/ 100.0, u16sh/ 100.0, u18sh/ 100.0, u20sh/ 100.0, u22sh/ 100.0, u24sh/ 100.0, u28sh/ 100.0, o28sh/ 100.0,
+            u12di/ 100.0, u14di/ 100.0, u16di/ 100.0, u18di/ 100.0, u20di/ 100.0, u22di/ 100.0, u24di/ 100.0, u28di/ 100.0, o28di/ 100.0,
+            ] + chaku_r + kyaku_r +\
+            u12sh_r + u14sh_r + u16sh_r + u18sh_r + u20sh_r + u22sh_r + u24sh_r + u28sh_r + o28sh_r +\
+            u12di_r + u14di_r + u16di_r + u18di_r + u20di_r + u22di_r + u24di_r + u28di_r + o28di_r
 
 class RatingLoader:
     data_unit_size = 3
@@ -424,21 +587,20 @@ class RatingLoader:
         shiba_table     = 'uma_rating_20'
         dirt_table      = 'uma_rating_21'
 
-        query = SelectPhrase.generate(RatingReference(id[0], id[1], kettonum, self.history_limit, shiba_table))
+        shiba_rating_list = list()
+        dirt_rating_list = list()
+
+        query = select_query_generate(RatingReference(id[0], id[1], kettonum, self.history_limit, shiba_table))
         with uma_processed.cursor('prcur') as processed_cur:
             processed_cur.execute(query)
             rows = processed_cur.fetchall()
-
-        shiba_rating_list = list()
         for row in rows:
             shiba_rating_list += self.pack(id, row)
 
-        query = SelectPhrase.generate(RatingReference(id[0], id[1], kettonum, self.history_limit, dirt_table))
+        query = select_query_generate(RatingReference(id[0], id[1], kettonum, self.history_limit, dirt_table))
         with uma_processed.cursor('prcur') as processed_cur:
             processed_cur.execute(query)
             rows = processed_cur.fetchall()
-
-        dirt_rating_list = list()
         for row in rows:
             dirt_rating_list += self.pack(id, row)
 
@@ -446,7 +608,7 @@ class RatingLoader:
         for i in range(self.history_limit - int(len(shiba_rating_list) / self.data_unit_size)):
             hist_size = len(shiba_rating_list)
             oldest_hist = hist_size - 3
-            pad = [1400, 0, 0] if hist_size == 0 else [shiba_rating_list[oldest_hist], 
+            pad = [1400 / 2000.0, 0, 0] if hist_size == 0 else [shiba_rating_list[oldest_hist], 
                                                         shiba_rating_list[oldest_hist + 1], 
                                                         shiba_rating_list[oldest_hist + 2]]
             shiba_rating_list += pad
@@ -454,7 +616,7 @@ class RatingLoader:
         for i in range(self.history_limit - int(len(dirt_rating_list) / self.data_unit_size)):
             hist_size = len(dirt_rating_list)
             oldest_hist = hist_size - 3
-            pad = [1400, 0, 0] if hist_size == 0 else [dirt_rating_list[oldest_hist], 
+            pad = [1400 / 2000.0, 0, 0] if hist_size == 0 else [dirt_rating_list[oldest_hist], 
                                                         dirt_rating_list[oldest_hist + 1], 
                                                         dirt_rating_list[oldest_hist + 2]]
             dirt_rating_list += pad
@@ -462,11 +624,11 @@ class RatingLoader:
         return shiba_rating_list + dirt_rating_list
 
 class HorseInfoLoader:
-    data_size = 11
+    data_size = 10
 
     @classmethod
     def load_data(self, id, kettonum, everydb):
-        query = SelectPhrase.generate(HorseInfoReference(id, kettonum))
+        query = select_query_generate(HorseInfoReference(id, kettonum))
 
         with everydb.cursor('evcur') as everydb_cur:
             everydb_cur.execute(query)
@@ -505,19 +667,17 @@ class HorseInfoLoader:
 
         return [umaban,] + sexoh + tozaioh + [futan, bataijyu, zogensa, zogensa_negative], kakuteijyuni
 
-    @classmethod
-    def load_data_dummy(cls):
-        return [0] * cls.data_size, 0
-
 class PastHorseInfoLoader:
     data_size = HorseInfoLoader.data_size + 11
+    time_normalize = 300
+    haronvel_average = 16967.3
 
     @classmethod
     def load_data(self, id, kettonum, everydb):
         data, kakuteijyuni = HorseInfoLoader.load_data(id, kettonum, everydb)
 
         with everydb.cursor('evcur') as cur:
-            query = SelectPhrase.generate(PastHorseInfoReference(id, kettonum))
+            query = select_query_generate(PastHorseInfoReference(id, kettonum))
             cur.execute(query)
             row = cur.fetchone()
 
@@ -527,12 +687,10 @@ class PastHorseInfoLoader:
         honsyokin = int(row[PastHorseInfoReference.index('honsyokin')]) / 10000000.0 # 0.1k yen / 10000000.0 = billion
         fukasyokin = int(row[PastHorseInfoReference.index('fukasyokin')]) / 10000000.0
 
-        time_normalize = 300
-
         time_min = int(row[PastHorseInfoReference.index('time')][0])
         time_sec = int(row[PastHorseInfoReference.index('time')][1:4]) / 10.0 
-        time = (time_min * 60.0 + time_sec) / time_normalize 
-        timediff = (int(row[PastHorseInfoReference.index('timediff')]) / 10.0) / time_normalize
+        time = (time_min * 60.0 + time_sec) / self.time_normalize 
+        timediff = (int(row[PastHorseInfoReference.index('timediff')]) / 10.0) / self.time_normalize
         if timediff < 0:
             timediff = 0
 
@@ -541,12 +699,12 @@ class PastHorseInfoLoader:
         if harontimel3_org == 0 or harontimel3_org == 999:
             harontimel3_org = 369 # average of harontimel3
 
-        harontimel3 = harontimel3_org / 10.0 / time_normalize
-        haronvel = haron_per_meter / harontimel3 * 10 # m/s
+        harontimel3 = harontimel3_org / 10.0 / self.time_normalize
+        haronvel    = haron_per_meter / harontimel3 * 10 / self.haronvel_average
 
         kyakusitukubun = onehot(4, int(row[PastHorseInfoReference.index('kyakusitukubun')]) - 1)
 
-        query = SelectPhrase.generate(KyoriReference(id))
+        query = select_query_generate(KyoriReference(id))
         with everydb.cursor('evcur') as everydb_cur:
             everydb_cur.execute(query)
             row = everydb_cur.fetchone()
@@ -555,11 +713,12 @@ class PastHorseInfoLoader:
         kyori = int(row[0]) / 1000.0 # km
         vel = kyori / (time_min * 60.0 + time_sec)
 
-        return data + [kakuteijyuni, honsyokin + fukasyokin, time, timediff, vel, harontimel3, haronvel] + kyakusitukubun
+        return data + [kakuteijyuni / 18, honsyokin + fukasyokin, time, timediff, vel, harontimel3, haronvel] + kyakusitukubun
 
     @classmethod
-    def load_data_dummy(cls):
-        return [0] * cls.data_size
+    def load_average(self):
+        return [7, 0, 100.26 / self.time_normalize, 1.497 / self.time_normalize, 0.016184, 0.12257, 1.0] + [0.25, 0.25, 0.25, 0.25]
+
 
 class StaticHorseInfoLoader:
     data_size = 1
@@ -567,7 +726,7 @@ class StaticHorseInfoLoader:
     @classmethod
     def load_data(self, id, kettonum, everydb):
         with everydb.cursor('evcur') as everydb_cur:
-            query = SelectPhrase.generate(StaticHorseInfoReference(kettonum))
+            query = select_query_generate(StaticHorseInfoReference(kettonum))
             everydb_cur.execute(query)
             row = everydb_cur.fetchone()
 
@@ -581,7 +740,7 @@ class StaticHorseInfoLoader:
 
 class PastRaceResultLoader:
     @classmethod
-    def load_data(self, id, kettonum, limit, everydb):
+    def load_data(self, id, kettonum, horceinfo, limit, everydb):
         uma_race_result_list = list()
         id_list = load_past_id_from_kettonum(id, kettonum, limit, everydb)
 
@@ -593,9 +752,16 @@ class PastRaceResultLoader:
             race_result = PastHorseInfoLoader.load_data(past_id, kettonum, everydb)
             uma_race_result_list.append(race_result + [past_days])
 
+        pastrace_len = len(uma_race_result_list)
+
+        if pastrace_len:
+            padding = uma_race_result_list[pastrace_len - 1] 
+        else:
+            padding = horceinfo if not pastrace_len else uma_race_result_list[pastrace_len - 1][0:HorseInfoLoader.data_size]
+            padding = padding + PastHorseInfoLoader.load_average() + [0]
+
         for i in range(limit - len(uma_race_result_list)):
-            past_days = 0
-            uma_race_result_list.append(PastHorseInfoLoader.load_data_dummy() + [past_days])
+            uma_race_result_list.append(padding)
 
         return uma_race_result_list
 
@@ -613,7 +779,7 @@ class UmaInfoLoader:
             uma_statistics = StatisticsLoader.load_data(id, kettonum, uma_processed)
 
             limit = 3
-            uma_pastresult = PastRaceResultLoader.load_data(id, kettonum, limit, everydb) 
+            uma_pastresult = PastRaceResultLoader.load_data(id, kettonum, uma_race, limit, everydb) 
 
             # 6 + 1 + 2 + 84 + 16 * 5 = 93 + 16 * 5 + 1= 174
             datapack.append( uma_race 
@@ -633,7 +799,7 @@ class UmaInfoLoader:
         # padding data
         assert(len(datapack) > 0)
         for i in range(18 - len(datapack)):
-            datapack.append( [0] * len(datapack[0]) )
+            datapack.append( datapack[len(datapack) - 1] )
             first_place.append(0)
 
         return datapack, first_place
@@ -642,13 +808,13 @@ class UmaDatasetGen3:
     def __init__(self):
         try:
             self.con_everydb = psycopg2.connect(os.environ.get('DB_EVERYDB2'))
-        except:
+        except Exception as e:
             print('psycopg2: connecting everydb2 failed')
             raise e
 
         try:
             self.con_processed = psycopg2.connect(os.environ.get('DB_UMA_PROCESSED'))
-        except:
+        except Exception as e:
             print('psycopg2: connecting uma_processed faied')
             raise e
 
@@ -658,7 +824,7 @@ class UmaDatasetGen3:
 
     def __get_race_list_period(self, fromymd, toymd):
         with self.con_everydb.cursor() as cur:
-            query = SelectPhrase.generate(IDListReference(fromymd, toymd))
+            query = select_query_generate(IDListReference(fromymd, toymd))
             cur.execute(query)
             rows = cur.fetchall()
 

@@ -1,5 +1,5 @@
 bucket_name: "iwase22334-umastore"
-bucket_path: "trainer-gen2"
+bucket_path: "trainer-gen3"
 train_x_data: "x_train.npy"
 train_y_data: "y_train.npy"
 eval_x_data: "x_eval.npy"

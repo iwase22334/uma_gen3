@@ -24,7 +24,7 @@ def train(neckdim, uma_depth, merged_depth, regularize_const, dropout_rate):
 
     ## Define network 
     race_info_dim = 33
-    uma_info_dim  = 393
+    uma_info_dim  = 237
     max_syusso    = 18
 
     ## Layer for Uma info
@@ -85,10 +85,6 @@ def load_traindata():
     print('load complete  ')
     x_train = format_data.format_data(tmp_list)
 
-    print(len(x_train))
-    print(len(x_train[0]))
-    print(len(x_train[0][0]))
-
     print('loading y_train')
     y_train = np.load(file = project_path + '/y_train.npy', allow_pickle=True)
 
@@ -117,11 +113,11 @@ if __name__ == "__main__":
     x_eval, y_eval = load_evaldata()
 
     # set parameter 
-    dropout_rate_list       = [0.0, 0.3]
+    dropout_rate_list       = [0.0, 0.0]
     neck_dimension_list     = [18, 54]
-    uma_depth_list          = [1 ]
-    merged_depth_list       = [1, 2]
-    regularize_const_list   = [0.001, 0.0003]
+    uma_depth_list          = [1, 2]
+    merged_depth_list       = [1, 2, 3]
+    regularize_const_list   = [0.0003]
 
     param = list()
     for nd in neck_dimension_list:
