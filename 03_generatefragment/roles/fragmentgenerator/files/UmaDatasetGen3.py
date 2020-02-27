@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import copy
 import traceback
 import numpy as np
 import os
@@ -498,6 +499,30 @@ def load_kettonum_list(id, everydb):
     return kettonum_list
 
 class StatisticsLoader:
+    ruikeishiba_max = 0.018113
+    ruikeidirt_max = 0.005727
+    ruikeichakukaisu_max = 1.26
+    chaku_max = 1.26
+    u12sh_max = 0.72
+    u14sh_max = 0.46
+    u16sh_max = 0.32
+    u18sh_max = 0.46
+    u20sh_max = 0.53
+    u22sh_max = 0.15
+    u24sh_max = 0.2
+    u28sh_max = 0.27
+    o28sh_max = 0.32
+
+    u12di_max = 0.6
+    u14di_max = 0.32
+    u16di_max = 0.2
+    u18di_max = 0.64
+    u20di_max = 0.1
+    u22di_max = 0.14
+    u24di_max = 0.17
+    u28di_max = 0.05
+    o28di_max = 0.01 # (0)
+
     @classmethod
     def load_data(self, id, kettonum, uma_processed):
         query = select_query_generate(StatisticsReference(id, kettonum))
@@ -553,9 +578,11 @@ class StatisticsLoader:
         if kyaku == 0:
             kyaku_r = [0.333, 0.333, 0.333, 0.333]
 
-        return [ruikeishiba / 100.0, ruikeidirt/ 100.0, ruikeichakukaisu/ 100.0, chaku/ 100.0, kyaku/ 100.0,
-            u12sh/ 100.0, u14sh/ 100.0, u16sh/ 100.0, u18sh/ 100.0, u20sh/ 100.0, u22sh/ 100.0, u24sh/ 100.0, u28sh/ 100.0, o28sh/ 100.0,
-            u12di/ 100.0, u14di/ 100.0, u16di/ 100.0, u18di/ 100.0, u20di/ 100.0, u22di/ 100.0, u24di/ 100.0, u28di/ 100.0, o28di/ 100.0,
+        return [ruikeishiba / 100.0 / self.ruikeishiba_max, ruikeidirt/ 100.0 / self.ruikeidirt_max, ruikeichakukaisu/ 100.0 / self.ruikeichakukaisu_max, chaku/ 100.0 /self.chaku_max, kyaku/ 100.0,
+            u12sh/ 100.0 / self.u12sh_max, u14sh/ 100.0 / self.u14sh_max, u16sh/ 100.0 / self.u16sh_max, u18sh/ 100.0 / self.u18sh_max, u20sh/ 100.0 / self.u20sh_max, 
+            u22sh/ 100.0 / self.u22sh_max, u24sh/ 100.0 / self.u24sh_max, u28sh/ 100.0 / self.u28sh_max, o28sh/ 100.0 / self.o28sh_max, 
+            u12di/ 100.0 / self.u12di_max, u14di/ 100.0 / self.u14di_max, u16di/ 100.0 / self.u16di_max, u18di/ 100.0 / self.u18di_max, u20di/ 100.0 / self.u20di_max, 
+            u22di/ 100.0 / self.u22di_max, u24di/ 100.0 / self.u24di_max, u28di/ 100.0 / self.u28di_max, o28di/ 100.0 / self.o28di_max, 
             ] + chaku_r + kyaku_r +\
             u12sh_r + u14sh_r + u16sh_r + u18sh_r + u20sh_r + u22sh_r + u24sh_r + u28sh_r + o28sh_r +\
             u12di_r + u14di_r + u16di_r + u18di_r + u20di_r + u22di_r + u24di_r + u28di_r + o28di_r
@@ -564,6 +591,13 @@ class RatingLoader:
     data_unit_size = 3
     history_limit = 3
     data_size = 3*2*3
+
+    ratingdiff_max = 250
+    ratingdiff_min = 81
+    elapsed_year_max = 10.1068 # 3
+                        #"8.15068" # 1
+                        #"8.8411"  # 2
+
 
     @classmethod
     def pack(self, id, row):
@@ -580,7 +614,7 @@ class RatingLoader:
             rating = int(row[RatingReference.index('rating')]) / 2000.0
             rating_diff = int(row[RatingReference.index('ratingdiff')]) / 2000.0
 
-        return [rating, rating_diff, elapsed_year]
+        return [rating, rating_diff / self.ratingdiff_max, elapsed_year / self.elapsed_year_max]
 
     @classmethod
     def load_data(self, id, kettonum, uma_processed):
@@ -625,6 +659,11 @@ class RatingLoader:
 
 class HorseInfoLoader:
     data_size = 10
+    futan_max = 0.66
+    bataijyu_max = 0.63
+    bataijyu_avg = 0.467
+    zogensa_max = 0.064
+    zogensa_negative_max = 0.07
 
     @classmethod
     def load_data(self, id, kettonum, everydb):
@@ -651,7 +690,10 @@ class HorseInfoLoader:
         tozaioh = onehot(2, tozaicd - 1) if tozaicd == 1 or tozaicd == 2 else [0, 0]
 
         futan = int(row[HorseInfoReference.index('futan')]) / 1000.0 # tonne
+
         bataijyu = int(row[HorseInfoReference.index('bataijyu')]) / 1000.0 # tonne
+        if int(row[HorseInfoReference.index('bataijyu')]) == 999:
+            bataijyu = self.bataijyu_avg
 
         # for processing efficiency, load now for result data
         kakuteijyuni = int(row[HorseInfoReference.index('kakuteijyuni')])
@@ -665,12 +707,22 @@ class HorseInfoLoader:
             elif row[HorseInfoReference.index('zogenfugo')] == '-':
                 zogensa_negative = abs_z
 
-        return [umaban,] + sexoh + tozaioh + [futan, bataijyu, zogensa, zogensa_negative], kakuteijyuni
+        return [umaban,] + sexoh + tozaioh + [
+        futan / self.futan_max , 
+        bataijyu / self.bataijyu_max, 
+        zogensa / self.zogensa_max,
+        zogensa_negative/ self.zogensa_negative_max], kakuteijyuni
 
 class PastHorseInfoLoader:
     data_size = HorseInfoLoader.data_size + 11
     time_normalize = 300
     haronvel_average = 16967.3
+
+    syokin_max = 0.253864
+    timediff_max = 0.267
+    vel_max = 0.018622
+    harontimel3_max = 0.332667
+    haronvel_max = 2.80068
 
     @classmethod
     def load_data(self, id, kettonum, everydb):
@@ -713,15 +765,16 @@ class PastHorseInfoLoader:
         kyori = int(row[0]) / 1000.0 # km
         vel = kyori / (time_min * 60.0 + time_sec)
 
-        return data + [kakuteijyuni / 18, honsyokin + fukasyokin, time, timediff, vel, harontimel3, haronvel] + kyakusitukubun
+        return data + [kakuteijyuni / 18, (honsyokin + fukasyokin) / self.syokin_max, time, timediff / self.timediff_max, vel / self.vel_max, harontimel3 / self.harontimel3_max, haronvel / self.haronvel_max] + kyakusitukubun
 
     @classmethod
     def load_average(self):
-        return [7, 0, 100.26 / self.time_normalize, 1.497 / self.time_normalize, 0.016184, 0.12257, 1.0] + [0.25, 0.25, 0.25, 0.25]
+        return [7 / 18, 0, 100.26 / self.time_normalize, 1.497 / self.time_normalize / self.timediff_max, 0.016184 / self.vel_max, 0.12257 / self.harontimel3_max, 1.0 / self.haronvel_max] + [0.25, 0.25, 0.25, 0.25]
 
 
 class StaticHorseInfoLoader:
     data_size = 1
+    liveyear_max = 13.7726
 
     @classmethod
     def load_data(self, id, kettonum, everydb):
@@ -736,9 +789,10 @@ class StaticHorseInfoLoader:
         racedate = Converter.raceid_to_datetime(id)
         birthdate = Converter.birthdate_to_datetime(row[StaticHorseInfoReference.index('birthdate')])
         liveyear = (racedate - birthdate).days / 365
-        return [liveyear]
+        return [liveyear / self.liveyear_max]
 
 class PastRaceResultLoader:
+    pastdays_max = 7.47945
     @classmethod
     def load_data(self, id, kettonum, horceinfo, limit, everydb):
         uma_race_result_list = list()
@@ -750,7 +804,7 @@ class PastRaceResultLoader:
             past_days = (racedate - past_racedate).days / 365
 
             race_result = PastHorseInfoLoader.load_data(past_id, kettonum, everydb)
-            uma_race_result_list.append(race_result + [past_days])
+            uma_race_result_list.append(race_result + [past_days / self.pastdays_max])
 
         pastrace_len = len(uma_race_result_list)
 

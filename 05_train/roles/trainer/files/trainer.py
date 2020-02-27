@@ -19,8 +19,9 @@ def generate_modelname(param):
     for p in param: filename = filename + '_' + str(p)
     return filename
 
-def train(neckdim, uma_depth, merged_depth, regularize_const, dropout_rate):
-    print(neckdim, uma_depth, merged_depth, regularize_const, dropout_rate)
+def train(neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate):
+    print('neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate')
+    print(neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate)
 
     ## Define network 
     race_info_dim = 33
@@ -33,20 +34,23 @@ def train(neckdim, uma_depth, merged_depth, regularize_const, dropout_rate):
         input_uma.append(Input(shape=(race_info_dim + uma_info_dim,)))
 
     ## input layer
-    uma_dense_1 = Dense(race_info_dim + uma_info_dim, kernel_regularizer=regularizers.l2(regularize_const), activation='tanh')
+    uma_dense_1 = Dense(uma_width, kernel_regularizer=regularizers.l2(regularize_const), activation='tanh')
     hidden_uma_branch_1 = [ list() for i in range(max_syusso) ]
     for i in range(max_syusso):
         hidden_uma_branch_1[i].append(uma_dense_1(input_uma[i]))
 
     ## hidden layer
     for i in range(uma_depth - 1):
+        uma_dense_2 = Dense(uma_width, kernel_regularizer=regularizers.l2(regularize_const), activation='tanh')
+        dropout = Dropout(dropout_rate)
+
         for branch_no in range(max_syusso):
             branch = hidden_uma_branch_1[branch_no]
             tail = branch[len(branch) - 1]
-            branch.append(uma_dense_1(tail))
+            branch.append(uma_dense_2(tail))
 
             tail = branch[len(branch) - 1]
-            branch.append(Dropout(dropout_rate)(tail))
+            branch.append(dropout(tail))
 
     ## Layer for concatenamting race info and uma info
     hidden_m = Concatenate()([branch[len(branch) - 1] for branch in hidden_uma_branch_1])
@@ -70,7 +74,7 @@ def train(neckdim, uma_depth, merged_depth, regularize_const, dropout_rate):
     model.fit(x_train, y_train, epochs=256, verbose=1, batch_size=2048, callbacks=[early_stopping])
 
     ## save
-    modelname = generate_modelname([neckdim, uma_depth, merged_depth, regularize_const, dropout_rate])
+    modelname = generate_modelname([neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate])
     model.save(modelname + '.h5')
 
     with open(modelname + '.hist', 'wb') as file_pi:
@@ -113,25 +117,82 @@ if __name__ == "__main__":
     x_eval, y_eval = load_evaldata()
 
     # set parameter 
-    dropout_rate_list       = [0.0, 0.0]
-    neck_dimension_list     = [18, 54]
-    uma_depth_list          = [1, 2]
-    merged_depth_list       = [1, 2, 3]
-    regularize_const_list   = [0.0003]
+    dropout_rate_list       = [0.0]
+    neck_dimension_list     = [18]
+    uma_depth_list          = [1, 2, 3]
+    uma_width_list          = [3, 10, 20, 30, 40, 50]
+    merged_depth_list       = [1, 2]
+    regularize_const_list   = [0.003]
 
     param = list()
+
     for nd in neck_dimension_list:
         for do in dropout_rate_list:
             for md in merged_depth_list:
                 for ud in uma_depth_list:
-                    for rcd in regularize_const_list:
-                        param.append([nd, ud, md, rcd, do])
+                    for uw in uma_width_list:
+                        for rcd in regularize_const_list:
+                            param.append([nd, ud, uw, md, rcd, do])
+
+    # [neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate]
+    
+    #param.append([18, 3, 20, 1, 0.003, 0.0])
+    #param.append([18, 3, 30, 1, 0.003, 0.0])
+    #param.append([18, 3, 40, 1, 0.003, 0.0])
+
+    #param.append([18, 4,  5, 1, 0.003, 0.0])
+    #param.append([18, 4, 10, 1, 0.003, 0.0])
+    #param.append([18, 4, 20, 1, 0.003, 0.0])
+    #param.append([18, 4, 30, 1, 0.003, 0.0])
+    #param.append([18, 4, 40, 1, 0.003, 0.0])
+
+    #param.append([18, 5,  5, 1, 0.003, 0.0])
+    #param.append([18, 5, 10, 1, 0.003, 0.0])
+    #param.append([18, 5, 20, 1, 0.003, 0.0])
+    #param.append([18, 5, 30, 1, 0.003, 0.0])
+    #param.append([18, 5, 40, 1, 0.003, 0.0])
+
+    #param.append([18, 3,  5, 1, 0.003, 0.3])
+    #param.append([18, 3, 10, 1, 0.003, 0.3])
+    #param.append([18, 3, 20, 1, 0.003, 0.3])
+    #param.append([18, 3, 30, 1, 0.003, 0.3])
+    #param.append([18, 3, 40, 1, 0.003, 0.3])
+
+    #param.append([18, 3,  5, 1, 0.003, 0.6])
+    #param.append([18, 3, 10, 1, 0.003, 0.6])
+    #param.append([18, 3, 20, 1, 0.003, 0.6])
+    #param.append([18, 3, 30, 1, 0.003, 0.6])
+    #param.append([18, 3, 40, 1, 0.003, 0.6])
+
+    #param.append([18, 4,  5, 1, 0.003, 0.3])
+    #param.append([18, 4, 10, 1, 0.003, 0.3])
+    #param.append([18, 4, 20, 1, 0.003, 0.3])
+    #param.append([18, 4, 30, 1, 0.003, 0.3])
+    #param.append([18, 4, 40, 1, 0.003, 0.3])
+
+    #param.append([18, 4,  5, 1, 0.003, 0.6])
+    #param.append([18, 4, 10, 1, 0.003, 0.6])
+    #param.append([18, 4, 20, 1, 0.003, 0.6])
+    #param.append([18, 4, 30, 1, 0.003, 0.6])
+    #param.append([18, 4, 40, 1, 0.003, 0.6])
+
+    #param.append([18, 5,  5, 1, 0.003, 0.3])
+    #param.append([18, 5, 10, 1, 0.003, 0.3])
+    #param.append([18, 5, 20, 1, 0.003, 0.3])
+    #param.append([18, 5, 30, 1, 0.003, 0.3])
+    #param.append([18, 5, 40, 1, 0.003, 0.3])
+
+    #param.append([18, 5,  5, 1, 0.003, 0.6])
+    #param.append([18, 5, 10, 1, 0.003, 0.6])
+    #param.append([18, 5, 20, 1, 0.003, 0.6])
+    #param.append([18, 5, 30, 1, 0.003, 0.6])
+    #param.append([18, 5, 40, 1, 0.003, 0.6])
 
     print(param)
     count = 0
-    for neckdim, uma_depth, merged_depth, regularize_const, dropout_rate in param:
+    for neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate in param:
         count = count + 1
-        modelname = generate_modelname([neckdim, uma_depth, merged_depth, regularize_const, dropout_rate])
+        modelname = generate_modelname([neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate])
         print(modelname)
 
         if os.path.exists(modelname + '.h5'):
@@ -140,8 +201,8 @@ if __name__ == "__main__":
         print('===========================')
         print('[%d / %d]' % (count, len(param)))
         print('===========================')
-        train(neckdim, uma_depth, merged_depth, regularize_const, dropout_rate)
-        loss, accuracy, average, racenum = evaluate.evaluate(generate_modelname([neckdim, uma_depth, merged_depth, regularize_const, dropout_rate]) + '.h5', 
+        train(neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate)
+        loss, accuracy, average, racenum = evaluate.evaluate(generate_modelname([neckdim, uma_depth, uma_width, merged_depth, regularize_const, dropout_rate]) + '.h5', 
                                                             x_eval, y_eval)
 
         print('Test loss:', loss)
